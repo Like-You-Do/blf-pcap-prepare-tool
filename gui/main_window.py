@@ -2,14 +2,16 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QGroupBox,
-    QMessageBox, QProgressBar
+    QMessageBox, QProgressBar, QSpacerItem, QSizePolicy
 )
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtGui import QFont, QIcon
 
 from parsers.pcap_parser import parse_pcap
 from parsers.blf_parser import parse_blf
 from comparator import compare_files
 from gui.result_widget import ResultWidget
+from gui.styles import MAIN_STYLE, FILE_SELECT_STYLE, COMPARE_BUTTON_STYLE
 
 
 class CompareWorker(QThread):
@@ -52,17 +54,26 @@ class MainWindow(QMainWindow):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.setStyleSheet(MAIN_STYLE)
+        
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         file_group = QGroupBox("文件选择")
         file_layout = QVBoxLayout(file_group)
+        file_layout.setSpacing(15)
+        file_layout.setContentsMargins(20, 25, 20, 20)
 
         file1_layout = QHBoxLayout()
         file1_label = QLabel("文件1:")
+        file1_label.setFixedWidth(60)
+        file1_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.file1_path = QLabel("未选择文件")
-        self.file1_path.setStyleSheet("color: gray;")
+        self.file1_path.setObjectName("file_path")
+        self.file1_path.setProperty("selected", "false")
         file1_btn = QPushButton("选择文件")
         file1_btn.clicked.connect(lambda: self._select_file(1))
         file1_layout.addWidget(file1_label)
@@ -71,8 +82,11 @@ class MainWindow(QMainWindow):
 
         file2_layout = QHBoxLayout()
         file2_label = QLabel("文件2:")
+        file2_label.setFixedWidth(60)
+        file2_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.file2_path = QLabel("未选择文件")
-        self.file2_path.setStyleSheet("color: gray;")
+        self.file2_path.setObjectName("file_path")
+        self.file2_path.setProperty("selected", "false")
         file2_btn = QPushButton("选择文件")
         file2_btn.clicked.connect(lambda: self._select_file(2))
         file2_layout.addWidget(file2_label)
@@ -84,13 +98,9 @@ class MainWindow(QMainWindow):
 
         btn_layout = QHBoxLayout()
         self.compare_btn = QPushButton("开始对比")
+        self.compare_btn.setObjectName("compare_btn")
         self.compare_btn.setEnabled(False)
         self.compare_btn.clicked.connect(self._start_compare)
-        self.compare_btn.setStyleSheet(
-            "QPushButton { background-color: #4CAF50; color: white; "
-            "padding: 8px 16px; font-weight: bold; }"
-            "QPushButton:disabled { background-color: #cccccc; }"
-        )
         btn_layout.addStretch()
         btn_layout.addWidget(self.compare_btn)
         btn_layout.addStretch()
@@ -98,6 +108,7 @@ class MainWindow(QMainWindow):
 
         self.progress = QProgressBar()
         self.progress.setVisible(False)
+        self.progress.setFixedHeight(8)
         file_layout.addWidget(self.progress)
 
         layout.addWidget(file_group)
@@ -118,7 +129,8 @@ class MainWindow(QMainWindow):
 
         label = self.file1_path if which == 1 else self.file2_path
         label.setText(filepath)
-        label.setStyleSheet("color: black;")
+        label.setProperty("selected", "true")
+        label.setStyleSheet(FILE_SELECT_STYLE)
 
         if which == 1:
             self._file1 = filepath
