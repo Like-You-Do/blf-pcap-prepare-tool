@@ -95,57 +95,78 @@ def _try_parse_someip_from_bytes(
 
 def _parse_blf_binary_fallback(filepath: str, entries: set[SomeIPEntry]):
     import struct
+    import zlib
+
+    LOG_CONTAINER = 10
+    ETHERNET_FRAME = 71
 
     try:
         with open(filepath, "rb") as f:
             data = f.read()
 
-        if len(data) < 14:
+        if len(data) < 144:
             return
 
-        if data[:4] != b"BLF\x00":
+        if data[:4] != b"LOGG":
             return
 
-        offset = 14
-        while offset < len(data) - 4:
+        offset = 144
+        while offset < len(data) - 16:
             if data[offset:offset + 4] != b"LOBJ":
-                offset += 1
-                continue
-
-            if offset + 16 > len(data):
                 break
 
-            obj_type = struct.unpack_from("<H", data, offset + 6)[0]
+            hs = struct.unpack_from("<H", data, offset + 4)[0]
+            hv = struct.unpack_from("<H", data, offset + 6)[0]
+            obj_size = struct.unpack_from("<I", data, offset + 8)[0]
+            obj_type = struct.unpack_from("<I", data, offset + 12)[0]
 
-            if obj_type == 71:
-                _parse_ethernet_frame_object(data, offset, entries, filepath)
+            if obj_type == LOG_CONTAINER:
+                cont_offset = offset + 16
+                if cont_offset + 16 > len(data):
+                    break
+                compression = struct.unpack_from("<H", data, cont_offset)[0]
+                comp_data = data[cont_offset + 16:offset + obj_size]
+                if compression == 2:
+                    container_data = zlib.decompress(comp_data)
+                elif compression == 0:
+                    container_data = comp_data
+                else:
+                    offset += obj_size
+                    continue
+                _scan_container_for_ethernet(container_data, entries, filepath)
 
-            next_offset = struct.unpack_from("<I", data, offset + 8)[0]
-            if next_offset == 0 or next_offset <= offset:
-                offset += 1
-            else:
-                offset = next_offset
+            next_offset = offset + obj_size
+            if next_offset <= offset:
+                break
+            offset = next_offset
     except Exception as e:
         logger.warning("BLF二进制解析失败 %s: %s", filepath, e)
 
 
-def _parse_ethernet_frame_object(
-    data: bytes, offset: int, entries: set[SomeIPEntry], filepath: str
+def _scan_container_for_ethernet(
+    data: bytes, entries: set[SomeIPEntry], filepath: str
 ):
     import struct
 
-    try:
-        if offset + 64 > len(data):
-            return
+    ETHERNET_FRAME = 71
+    pos = 0
 
-        obj_size = struct.unpack_from("<I", data, offset + 12)[0]
-        payload_offset = offset + 64
-        payload_len = obj_size - 64
-        if payload_len <= 0:
-            return
+    while pos < len(data) - 16:
+        try:
+            pos = data.index(b"LOBJ", pos, pos + 8)
+        except ValueError:
+            break
 
-        payload = data[payload_offset:payload_offset + payload_len]
+        hs = struct.unpack_from("<H", data, pos + 4)[0]
+        hv = struct.unpack_from("<H", data, pos + 6)[0]
+        obj_size = struct.unpack_from("<I", data, pos + 8)[0]
+        obj_type = struct.unpack_from("<I", data, pos + 12)[0]
 
-        _try_parse_someip_from_bytes(payload, entries, filepath)
-    except Exception:
-        pass
+        if obj_type == ETHERNET_FRAME:
+            payload = data[pos + 16:pos + obj_size]
+            _try_parse_someip_from_bytes(payload, entries, filepath)
+
+        next_pos = pos + obj_size
+        if next_pos <= pos:
+            break
+        pos = next_pos

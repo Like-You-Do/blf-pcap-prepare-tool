@@ -74,7 +74,11 @@ class ResultWidget(QWidget):
             or len(result.only_can_in_file1) > 0
             or len(result.only_can_in_file2) > 0
         )
-        self.can_group.setVisible(has_can)
+        if has_can:
+            self.can_group.setChecked(True)
+            self.can_group.setVisible(True)
+        else:
+            self.can_group.hide()
 
     def _display_someip(self, result: CompareResult):
         self.someip_tree.clear()
