@@ -168,6 +168,54 @@ QScrollBar::handle:horizontal:hover {
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
     width: 0;
 }
+
+QLabel#diff_file_label {
+    font-weight: bold;
+    font-size: 13px;
+    color: #1976d2;
+    padding: 6px 12px;
+    background-color: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 4px;
+}
+
+QSplitter::handle {
+    background-color: #1976d2;
+    width: 3px;
+}
+
+QComboBox {
+    padding: 6px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 12px;
+    min-width: 100px;
+}
+
+QComboBox:hover {
+    border-color: #1976d2;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 24px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #757575;
+    margin-right: 8px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    selection-background-color: #e3f2fd;
+    selection-color: #1976d2;
+}
 """
 
 FILE_SELECT_STYLE = """

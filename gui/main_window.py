@@ -172,6 +172,7 @@ class MainWindow(QMainWindow):
     def _on_compare_finished(self, result):
         self.progress.setVisible(False)
         self.compare_btn.setEnabled(True)
+        self.result_widget.set_files(self._file1, self._file2)
         self.result_widget.display_result(result)
 
     def _on_compare_error(self, error_msg):
